@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -16,20 +17,24 @@ const userSchema = new mongoose.Schema({
   },
   githubUsername: {
     type: String,
-    unique: true
+    required: true
   },
   experience: {
-    type: String
+    type: String,
+    required: true
   },
   techStack: {
     type: [String],
-  },
-  isActive: {
-    type: Boolean,
-    default: true
+    required: true
   }
 });
 
+// Compare password method
+userSchema.methods.comparePassword = async function(password) {
+  return bcrypt.compare(password, this.password);
+};
+
+// User model
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

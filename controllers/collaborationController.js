@@ -1,94 +1,84 @@
 const User = require('../models/User');
-const { generateToken } = require('../utils/authentication');
+const Project = require('../models/Project');
 
-async function registerUser(req, res) {
+async function sendCollaborationRequest(req, res) {
   try {
-    // Extract user details from the request body
-    const { name, email, password, githubUsername, experience, techStack } = req.body;
+    // Extract collaboration request details from the request body
+    const { userId, projectId } = req.body;
 
-    // Validate user inputs (you can use a validation library like Joi or implement custom validation)
-
-    // Check if the user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ error: 'User already exists' });
-    }
-
-    // Create a new user instance
-    const newUser = new User({
-      name,
-      email,
-      password,
-      githubUsername,
-      experience,
-      techStack
-    });
-
-    // Save the new user to the database
-    await newUser.save();
-
-    // Generate a JWT token for authentication
-    const token = generateToken(newUser);
-
-    // Return a success response with the token
-    res.status(201).json({ message: 'User registered successfully', token });
-  } catch (error) {
-    // Handle any errors that occur during registration
-    res.status(500).json({ error: 'Registration failed' });
-  }
-}
-
-async function loginUser(req, res) {
-  try {
-    // Extract user credentials from the request body
-    const { email, password } = req.body;
-
-    // Validate user inputs (you can use a validation library like Joi or implement custom validation)
-
-    // Check if the user exists
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Check if the provided password matches the user's password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid password' });
-    }
-
-    // Generate a JWT token for authentication
-    const token = generateToken(user);
-
-    // Return a success response with user details and token
-    res.json({ message: 'Login successful', user, token });
-  } catch (error) {
-    // Handle any errors that occur during login
-    res.status(500).json({ error: 'Login failed' });
-  }
-}
-
-async function getUserProfile(req, res) {
-  try {
-    // Extract the user ID from the request parameters or authentication token
-    const userId = req.params.id; // or req.user.id if using authentication middleware
-
-    // Fetch the user profile from the database
+    // Find the user and project associated with the collaboration request
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    const project = await Project.findById(projectId);
+
+    if (!user || !project) {
+      return res.status(404).json({ error: 'User or project not found' });
     }
 
-    // Return the user profile
-    res.json({ user });
+    // Add the user to the collaborators array in the project
+    project.collaborators.push(user);
+    await project.save();
+
+    // Return a success response
+    res.status(200).json({ message: 'Collaboration request sent successfully' });
   } catch (error) {
-    // Handle any errors that occur during profile retrieval
-    res.status(500).json({ error: 'Failed to retrieve user profile' });
+    // Handle any errors that occur during sending the collaboration request
+    console.log(error);
+    res.status(500).json({ error: 'Failed to send collaboration request' });
+  }
+}
+
+async function acceptCollaborationRequest(req, res) {
+  try {
+    // Extract the collaboration request ID from the request parameters
+    const requestId = req.params.id;
+
+    // Find the collaboration request by ID
+    const project = await Project.findById(requestId);
+
+    if (!project) {
+      return res.status(404).json({ error: 'Collaboration request not found' });
+    }
+
+    // Update the collaboration request status to accepted
+    project.status = 'accepted';
+    await project.save();
+
+    // Return a success response
+    res.status(200).json({ message: 'Collaboration request accepted successfully' });
+  } catch (error) {
+    // Handle any errors that occur during accepting the collaboration request
+    console.log(error);
+    res.status(500).json({ error: 'Failed to accept collaboration request' });
+  }
+}
+
+async function declineCollaborationRequest(req, res) {
+  try {
+    // Extract the collaboration request ID from the request parameters
+    const requestId = req.params.id;
+
+    // Find the collaboration request by ID
+    const project = await Project.findById(requestId);
+
+    if (!project) {
+      return res.status(404).json({ error: 'Collaboration request not found' });
+    }
+
+    // Update the collaboration request status to declined
+    project.status = 'declined';
+    await project.save();
+
+    // Return a success response
+    res.status(200).json({ message: 'Collaboration request declined successfully' });
+  } catch (error) {
+    // Handle any errors that occur during declining the collaboration request
+    console.log(error);
+    res.status(500).json({ error: 'Failed to decline collaboration request' });
   }
 }
 
 module.exports = {
-  registerUser,
-  loginUser,
-  getUserProfile,
+  sendCollaborationRequest,
+  acceptCollaborationRequest,
+  declineCollaborationRequest,
 };

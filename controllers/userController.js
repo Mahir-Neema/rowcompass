@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const bcrypt = require('bcrypt');
 
 async function registerUser(req, res) {
   try {
@@ -13,11 +14,14 @@ async function registerUser(req, res) {
       return res.status(409).json({ error: 'User already exists' });
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create a new user instance
     const newUser = new User({
       name,
       email,
-      password,
+      password: hashedPassword,
       githubUsername,
       experience,
       techStack
@@ -30,6 +34,7 @@ async function registerUser(req, res) {
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
     // Handle any errors that occur during registration
+    console.log(error);
     res.status(500).json({ error: 'Registration failed' });
   }
 }
@@ -47,8 +52,8 @@ async function loginUser(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if the provided password matches the user's password
-    const isPasswordValid = await user.comparePassword(password);
+    // Check if the provided password matches the user's hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid password' });
     }
@@ -57,6 +62,7 @@ async function loginUser(req, res) {
     res.json({ message: 'Login successful', user: user });
   } catch (error) {
     // Handle any errors that occur during login
+    console.log(error);
     res.status(500).json({ error: 'Login failed' });
   }
 }
