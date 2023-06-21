@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+require('dotenv').config();
 const app = express();
 
 // Middleware
@@ -21,8 +22,9 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to the database
+const mongoUri = process.env.MONGODB_URL
 mongoose
-  .connect('mongodb+srv://mahirneema6:N5xKAjBsmXAPSJeq@cluster1.evpa69u.mongodb.net/?retryWrites=true&w=majority', {
+  .connect(mongoUri, {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })
